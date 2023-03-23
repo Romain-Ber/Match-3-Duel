@@ -131,8 +131,8 @@ namespace Match_3_Duel
             //    ResetGemState();
             //}
             //while(EmptySpaces());
-            MouseClicks();
-            
+            MouseClicks(gameTime);
+
             base.Update(gameTime);
         }
 
@@ -254,8 +254,9 @@ namespace Match_3_Duel
             }
             return false;
         }
-        protected void MouseClicks()
+        protected void MouseClicks(GameTime gameTime)
         {
+            //initialize selection variables
             MouseState newState = Mouse.GetState();
             if (newState.LeftButton == ButtonState.Pressed && lastState.LeftButton == ButtonState.Released)
             {
@@ -269,122 +270,145 @@ namespace Match_3_Duel
                     gemRow = (int)((mouseStartX - gridX) / tileWidth);
                     gemCol = (int)((mouseStartY - gridY) / tileHeight);
                     gemSelected = true;
+                    IsMouseVisible = false;
+                    Mouse.SetPosition(gemGrid[gemRow,gemCol].gemX + tileWidth/2, gemGrid[gemRow,gemCol].gemY + tileHeight/2);
                 }
             }
+            //calculates possible moves
             if (newState.LeftButton == ButtonState.Pressed && gemSelected == true)
             {
                 gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY);
                 mouseDeltaX = newState.X;
                 mouseDeltaY = newState.Y;
-                //toward the right
-                if (mouseDeltaX > gemGrid[gemRow, gemCol].gemX &&
-                    mouseDeltaY > gemGrid[gemRow, gemCol].gemY &&
-                    mouseDeltaY < gemGrid[gemRow, gemCol].gemY + tileHeight &&
-                    gemRow < 6)
+                Vector2 mousePos = new Vector2(mouseDeltaX, mouseDeltaY);
+                Vector2 center = new Vector2(gemGrid[gemRow, gemCol].gemX + tileWidth / 2, gemGrid[gemRow, gemCol].gemY + tileHeight / 2);
+                Vector2 direction = mousePos - center;
+                float mouseAngle = (float)Math.Atan2(direction.Y, direction.X);
+                Vector2 topLeft = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY);
+                Vector2 topRight = new Vector2(gemGrid[gemRow, gemCol].gemX + tileWidth, gemGrid[gemRow, gemCol].gemY);
+                Vector2 bottomRight = new Vector2(gemGrid[gemRow, gemCol].gemX + tileWidth, gemGrid[gemRow, gemCol].gemY + tileHeight);
+                Vector2 bottomLeft = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY + tileHeight);
+                float topLeftAngle = (float)Math.Atan2(topLeft.Y - center.Y, topLeft.X - center.X);
+                float topRightAngle = (float)Math.Atan2(topRight.Y - center.Y, topRight.X - center.X);
+                float bottomRightAngle = (float)Math.Atan2(bottomRight.Y - center.Y, bottomRight.X - center.X);
+                float bottomLeftAngle = (float)Math.Atan2(bottomLeft.Y - center.Y, bottomLeft.X - center.X);
+                ////reinitialize positions
+                for (int i = 0; i < 7; i++)
                 {
-                    if (mouseDeltaX - mouseStartX < tileWidth / 3)
+                    for (int j = 0; j < 5; j++)
+                    {
+                        gemGrid[i, j].gemPos = new Vector2(gemGrid[i, j].gemX, gemGrid[i, j].gemY);
+                    }
+                }
+                //upward
+                if (gemCol != 0 &&
+                    mouseAngle > topLeftAngle &&
+                    mouseAngle < topRightAngle)
+                {
+                    if (mouseDeltaY < gemGrid[gemRow, gemCol].gemY)
+                    {
+                        gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY - tileHeight);
+                        gemGrid[gemRow, gemCol - 1].gemPos = new Vector2(gemGrid[gemRow, gemCol - 1].gemX, gemGrid[gemRow, gemCol - 1].gemY + tileHeight);
+                        moveGem = "UP";
+                        //SwapGems(gemGrid[gemRow, gemCol].gemPos, gemGrid[gemRow, gemCol - 1].gemPos, gameTime);
+                    }
+                }
+                //right
+                if (gemRow != 6 &&
+                    mouseAngle > topRightAngle &&
+                    mouseAngle < bottomRightAngle)
+                {
+                    if (mouseDeltaX > gemGrid[gemRow, gemCol].gemX + tileWidth)
                     {
                         gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX + tileWidth, gemGrid[gemRow, gemCol].gemY);
                         gemGrid[gemRow + 1, gemCol].gemPos = new Vector2(gemGrid[gemRow + 1, gemCol].gemX - tileWidth, gemGrid[gemRow + 1, gemCol].gemY);
                         moveGem = "RIGHT";
                     }
-                    else
-                    {
-                        gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY);
-                        gemGrid[gemRow + 1, gemCol].gemPos = new Vector2(gemGrid[gemRow + 1, gemCol].gemX, gemGrid[gemRow + 1, gemCol].gemY);
-                        moveGem = "";
-                    }
-                }
-                //toward the left
-                if (mouseDeltaX < gemGrid[gemRow, gemCol].gemX &&
-                    mouseDeltaY > gemGrid[gemRow, gemCol].gemY &&
-                    mouseDeltaY < gemGrid[gemRow, gemCol].gemY + tileHeight &&
-                    gemRow > 0)
-                {
-                    if (mouseStartX - mouseDeltaX < tileWidth / 3)
-                    {
-                        gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX - tileWidth, gemGrid[gemRow, gemCol].gemY);
-                        gemGrid[gemRow - 1, gemCol].gemPos = new Vector2(gemGrid[gemRow + 1, gemCol].gemX + tileWidth, gemGrid[gemRow + 1, gemCol].gemY);
-                        moveGem = "LEFT";
-                    }
-                    else
-                    {
-                        gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY);
-                        gemGrid[gemRow - 1, gemCol].gemPos = new Vector2(gemGrid[gemRow - 1, gemCol].gemX, gemGrid[gemRow - 1, gemCol].gemY);
-                        moveGem = "";
-                    }
                 }
                 //downward
-                if (mouseDeltaY > gemGrid[gemRow, gemCol].gemY &&
-                    mouseDeltaX > gemGrid[gemRow, gemCol].gemX &&
-                    mouseDeltaX < gemGrid[gemRow, gemCol].gemX + tileWidth &&
-                    gemCol < 4)
+                if (gemCol != 4 &&
+                    mouseAngle > bottomRightAngle &&
+                    mouseAngle < bottomLeftAngle)
                 {
-                    if (mouseDeltaY - mouseStartY < tileHeight / 3)
+                    if (mouseDeltaY > gemGrid[gemRow, gemCol].gemY + tileHeight)
                     {
                         gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY + tileHeight);
                         gemGrid[gemRow, gemCol + 1].gemPos = new Vector2(gemGrid[gemRow, gemCol + 1].gemX, gemGrid[gemRow, gemCol + 1].gemY - tileHeight);
                         moveGem = "DOWN";
-                    }
-                    else
-                    {
-                        gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY);
-                        gemGrid[gemRow, gemCol + 1].gemPos = new Vector2(gemGrid[gemRow, gemCol + 1].gemX, gemGrid[gemRow, gemCol + 1].gemY);
-                        moveGem = "";
-                    }
+                        }
                 }
-                //upward
-                if (mouseDeltaY < gemGrid[gemRow, gemCol].gemY &&
-                    mouseDeltaX > gemGrid[gemRow, gemCol].gemX &&
-                    mouseDeltaX < gemGrid[gemRow, gemCol].gemX + tileWidth &&
-                    gemCol > 0)
+                //left
+                if (gemRow != 0)
                 {
-                    if (mouseStartY - mouseDeltaY < tileHeight / 3)
+                    if (mouseAngle > bottomLeftAngle ||
+                        mouseAngle < topLeftAngle)
                     {
-                        gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY - tileHeight);
-                        gemGrid[gemRow, gemCol - 1].gemPos = new Vector2(gemGrid[gemRow, gemCol - 1].gemX, gemGrid[gemRow, gemCol - 1].gemY + tileHeight);
-                        moveGem = "UP";
-                    }
-                    else
-                    {
-                        gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY);
-                        gemGrid[gemRow, gemCol - 1].gemPos = new Vector2(gemGrid[gemRow, gemCol - 1].gemX, gemGrid[gemRow, gemCol - 1].gemY);
-                        moveGem = "";
+                        if (mouseDeltaX < gemGrid[gemRow, gemCol].gemX)
+                        {
+                            gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX - tileWidth, gemGrid[gemRow, gemCol].gemY);
+                            gemGrid[gemRow - 1, gemCol].gemPos = new Vector2(gemGrid[gemRow - 1, gemCol].gemX + tileWidth, gemGrid[gemRow - 1, gemCol].gemY);
+                            moveGem = "LEFT";
+                        }
                     }
                 }
             }
-
-            if (newState.LeftButton == ButtonState.Released && gemSelected == true && moveGem != "")
+            //change values in gemGrid
+            if (newState.LeftButton == ButtonState.Released && gemSelected == true)
             {
-                Gem oGem = gemGrid[gemRow, gemCol];
+                int gemtype1 = gemGrid[gemRow, gemCol].gemtype;
+                int gemtype2;
                 switch (moveGem)
                 {
-                    case "RIGHT":
-                        gemGrid[gemRow, gemCol] = gemGrid[gemRow + 1, gemCol];
-                        gemGrid[gemRow + 1, gemCol] = oGem;
+                    case "UP":
+                        gemtype2 = gemGrid[gemRow, gemCol - 1].gemtype;
+                        gemGrid[gemRow, gemCol].gemtype = gemtype2;
+                        gemGrid[gemRow, gemCol - 1].gemtype = gemtype1;
                         break;
-                    case "LEFT":
-                        gemGrid[gemRow, gemCol] = gemGrid[gemRow - 1, gemCol];
-                        gemGrid[gemRow - 1, gemCol] = oGem;
+                    case "RIGHT":
+                        gemtype2 = gemGrid[gemRow + 1, gemCol].gemtype;
+                        gemGrid[gemRow, gemCol].gemtype = gemtype2;
+                        gemGrid[gemRow + 1, gemCol].gemtype = gemtype1;
                         break;
                     case "DOWN":
-                        gemGrid[gemRow, gemCol] = gemGrid[gemRow, gemCol + 1];
-                        gemGrid[gemRow, gemCol + 1] = oGem;
+                        gemtype2 = gemGrid[gemRow, gemCol + 1].gemtype;
+                        gemGrid[gemRow, gemCol].gemtype = gemtype2;
+                        gemGrid[gemRow, gemCol + 1].gemtype = gemtype1;
                         break;
-                    case "UP":
-                        gemGrid[gemRow, gemCol] = gemGrid[gemRow, gemCol - 1];
-                        gemGrid[gemRow, gemCol - 1] = oGem;
+                    case "LEFT":
+                        gemtype2 = gemGrid[gemRow - 1, gemCol].gemtype;
+                        gemGrid[gemRow, gemCol].gemtype = gemtype2;
+                        gemGrid[gemRow - 1, gemCol].gemtype = gemtype1;
                         break;
                     default:
                         break;
                 }
-                moveGem = "";
                 gemSelected = false;
-                gemRow = -1;
-                gemCol = -1;
+                IsMouseVisible = true;
+                moveGem = "";
+                //update new positions
+                for (int i = 0; i < 7; i++)
+                {
+                    for (int j = 0; j < 5; j++)
+                    {
+                        gemGrid[i, j].gemPos = new Vector2(gemGrid[i, j].gemX, gemGrid[i, j].gemY);
+                    }
+                }
+                //Mouse.SetPosition(mouseStartX, mouseStartY);
+                //Mouse.SetPosition(gemGrid[gemRow, gemCol].gemX + tileWidth / 2, gemGrid[gemRow, gemCol].gemY + tileHeight / 2);
             }
             lastState = newState;
-
+        }
+        protected void SwapGems(Vector2 gem1Pos, Vector2 gem2Pos, GameTime gameTime)
+        {
+            Vector2 gem1Start = gem1Pos;
+            Vector2 gem2Start = gem2Pos;
+            Vector2 gem1End = new Vector2(gem2Pos.X, gem2Pos.Y);
+            Vector2 gem2End = new Vector2(gem1Pos.X, gem1Pos.Y);
+            float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            Vector2 gem1Distance = gem1End * deltaTime;
+            Vector2 gem2Distance = gem2End * deltaTime;
+            gem1Pos += gem1Distance;
+            gem2Pos += gem2Distance;
         }
 
         protected override void Draw(GameTime gameTime)
@@ -398,22 +422,56 @@ namespace Match_3_Duel
                 for (int j = 0;j < 5; j++)
                 {
                     int type = gemGrid[i, j].gemtype;
+                    //_spriteBatch.Draw(gemTiles[type - 1], new Vector2(gemGrid[i, j].gemX, gemGrid[i,j].gemY), Color.White);
                     _spriteBatch.Draw(gemTiles[type - 1], gemGrid[i,j].gemPos, Color.White);
+                    HighlightGem();
 
-                    string coords = gemGrid[i, j].gemX.ToString() + "," + gemGrid[i, j].gemY.ToString();
+
+
+                    string coords = gemGrid[i, j].gemX.ToString() + "," + gemGrid[i, j].gemY.ToString() + "                 [" + i.ToString() + "][" + j.ToString() + "]";
                     _spriteBatch.DrawString(arialFont, coords, gemGrid[i, j].gemPos, Color.White);
-                    MouseState mouseState = Mouse.GetState();
-                    string mouseCoords = "current mous coord: " + mouseState.X.ToString() + "," + mouseState.Y.ToString();
-                    _spriteBatch.DrawString(arialFont, mouseCoords, new Vector2(0,0), Color.White);
-                    string gemCoord = "mouse hovering gem [x,y]: " + ((lastState.X - gridX)/tileWidth).ToString() + "," + ((lastState.Y - gridY)/tileHeight).ToString();
-                    _spriteBatch.DrawString(arialFont, gemCoord, new Vector2(0, 25), Color.White);
-                    string gem2Coord = "selected gem [x,y]: " + gemRow.ToString() + "," + gemCol.ToString();
-                    _spriteBatch.DrawString(arialFont, gem2Coord, new Vector2(0,50), Color.White);
+
+
+                    //MouseState mouseState = Mouse.GetState();
+                    //string mouseCoords = "current mous coord: " + mouseState.X.ToString() + "," + mouseState.Y.ToString();
+                    //_spriteBatch.DrawString(arialFont, mouseCoords, new Vector2(0,0), Color.White);
+                    //string gemCoord = "mouse hovering gem [x,y]: " + ((lastState.X - gridX)/tileWidth).ToString() + "," + ((lastState.Y - gridY)/tileHeight).ToString();
+                    //_spriteBatch.DrawString(arialFont, gemCoord, new Vector2(0, 20), Color.White);
+                    //string gem2Coord = "selected gem [x,y]: " + gemRow.ToString() + "," + gemCol.ToString();
+                    //_spriteBatch.DrawString(arialFont, gem2Coord, new Vector2(0,40), Color.White);
+                    //string mouseStartCoords = "mouseStart X,Y: " + (mouseStartX).ToString() + "," + (mouseStartY).ToString();
+                    //_spriteBatch.DrawString(arialFont, mouseStartCoords, new Vector2(0, 60), Color.White);
+                    //string mouseDeltaCoords = "mouseDelta X,Y: " + (mouseDeltaX).ToString() + "," + (mouseDeltaY).ToString();
+                    //_spriteBatch.DrawString(arialFont, mouseDeltaCoords, new Vector2(0, 80), Color.White);
                 }
             }
             _spriteBatch.End();
 
             base.Draw(gameTime);
+        }
+        protected void HighlightGem()
+        {
+            if (gemSelected)
+            {
+                // set the position, size, and transparency of the rectangle
+                int rectangleWidth = tileWidth;
+                int rectangleHeight = tileHeight;
+                float transparency = 0.5f; // 50% transparency
+                Rectangle rectangle = new Rectangle(gemGrid[gemRow,gemCol].gemX, gemGrid[gemRow, gemCol].gemY, rectangleWidth, rectangleHeight);
+
+                // define the fill and border colors
+                Color fillColor = new Color(255, 255, 255, 255); // white color with the desired transparency
+                Color borderColor = Color.White;
+
+                // draw the rectangle shape with white borders and transparency
+                Texture2D pixel = new Texture2D(GraphicsDevice, 1, 1);
+                pixel.SetData(new[] { Color.White }); // create a 1x1 white texture
+                //_spriteBatch.Draw(pixel, rectangle, fillColor); // draw the filled rectangle
+                _spriteBatch.Draw(pixel, new Rectangle(rectangle.X, rectangle.Y, rectangle.Width, 1), borderColor); // draw the top border
+                _spriteBatch.Draw(pixel, new Rectangle(rectangle.X, rectangle.Y, 1, rectangle.Height), borderColor); // draw the left border
+                _spriteBatch.Draw(pixel, new Rectangle(rectangle.X + rectangle.Width - 1, rectangle.Y, 1, rectangle.Height), borderColor); // draw the right border
+                _spriteBatch.Draw(pixel, new Rectangle(rectangle.X, rectangle.Y + rectangle.Height - 1, rectangle.Width, 1), borderColor); // draw the bottom border
+            }
         }
     }
 }
