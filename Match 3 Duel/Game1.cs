@@ -12,6 +12,7 @@ namespace Match_3_Duel
         public Vector2 gemPos;
         public int gemtype;
         public bool matched;
+        public bool gemFalling;
         private Random rnd;
         public Gem(int pX, int pY)
         {
@@ -19,6 +20,7 @@ namespace Match_3_Duel
             gemY = pY;
             gemPos = new Vector2(gemX, gemY);
             matched = false;
+            gemFalling = false;
             rnd = new Random();
             gemtype = rnd.Next(1, 7);
             if (gemtype == 6)
@@ -41,6 +43,8 @@ namespace Match_3_Duel
         private SpriteBatch _spriteBatch;
         private int tileWidth;
         private int tileHeight;
+        private float speedX;
+        private float speedY;
         private int gridX;
         private int gridY;
         public Texture2D[] gemTiles = new Texture2D[6];
@@ -77,6 +81,8 @@ namespace Match_3_Duel
 
             tileWidth = 179;
             tileHeight = 170;
+            speedX = tileWidth / 2;
+            speedY = tileHeight / 2;
             gridX = (GraphicsDevice.Viewport.Width - 7 * tileWidth) / 2;
             gridY = (GraphicsDevice.Viewport.Height - 5 * tileHeight) / 2;
 
@@ -117,25 +123,36 @@ namespace Match_3_Duel
                 Exit();
 
             // TODO: Add your update logic here
-            if (gridFilled == false)
-            {
-                FillGrid();
-                gridFilled = true;
-            }
-            //do
+            //if (gridFilled == false)
             //{
             //    FillGrid();
-            //    MatchGems();
-            //    RemoveMatchedGems();
-            //    GemFall();
-            //    ResetGemState();
+            //    gridFilled = true;
             //}
-            //while(EmptySpaces());
-            MouseClicks(gameTime);
+            
+            //init grid
+            if (EmptySpaces())
+            {
+                FillGrid();
+                MatchGems();
+                RemoveMatchedGems();
+                ResetGemState();
+            }
+
+            FillGrid();
+            MatchGems();
+            RemoveMatchedGems();
+            GemFall();
+            while (GemFalling())
+            {
+                MoveGems(gameTime);
+            }
+            FillGrid();
+            ResetGemState();
+
+            MouseClicks();
 
             base.Update(gameTime);
         }
-
         protected void FillGrid()
         {
             for (int i = 0; i < 7; i++)
@@ -156,19 +173,25 @@ namespace Match_3_Duel
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    if (gemGrid[i, j] == gemGrid[i, j + 1] &&
-                        gemGrid[i, j] == gemGrid[i, j + 2])
+                    if (gemGrid[i, j] != null)
                     {
-                        if (gemGrid[i, j].matched == true ||
-                            gemGrid[i, j + 1].matched == true ||
-                            gemGrid[i, j + 2].matched == true)
+                        if ((gemGrid[i, j + 1] != null &&
+                            gemGrid[i, j + 2] != null) &&
+                            gemGrid[i, j].gemtype == gemGrid[i, j + 1].gemtype &&
+                            gemGrid[i, j].gemtype == gemGrid[i, j + 2].gemtype)
                         {
-                            extraMove = true;
+                            //if (gemGrid[i, j].matched == true ||
+                            //    gemGrid[i, j + 1].matched == true ||
+                            //    gemGrid[i, j + 2].matched == true)
+                            //{
+                            //    extraMove = true;
+                            //}
+                            gemGrid[i, j].matched = true;
+                            gemGrid[i, j + 1].matched = true;
+                            gemGrid[i, j + 2].matched = true;
                         }
-                        gemGrid[i, j].matched = true;
-                        gemGrid[i, j + 1].matched = true;
-                        gemGrid[i, j + 2].matched = true;
                     }
+
                 }
             }
             //checks horizontal 3-match, only need to check up to the 5th column for matching logic, left to right
@@ -176,19 +199,25 @@ namespace Match_3_Duel
             {
                 for (int j = 0; j < 5; j++)
                 {
-                    if (gemGrid[i, j] == gemGrid[i + 1, j] &&
-                        gemGrid[i, j] == gemGrid[i + 2, j])
+                    if (gemGrid[i, j] != null)
                     {
-                        if (gemGrid[i, j].matched == true ||
-                            gemGrid[i + 1, j].matched == true ||
-                            gemGrid[i + 2, j].matched == true)
+                        if ((gemGrid[i + 1, j] != null &&
+                            gemGrid[i + 2, j] != null) &&
+                            gemGrid[i, j].gemtype == gemGrid[i + 1, j].gemtype &&
+                            gemGrid[i, j].gemtype == gemGrid[i + 2, j].gemtype)
                         {
-                            extraMove = true;
+                            //if (gemGrid[i, j].matched == true ||
+                            //    gemGrid[i + 1, j].matched == true ||
+                            //    gemGrid[i + 2, j].matched == true)
+                            //{
+                            //    extraMove = true;
+                            //}
+                            gemGrid[i, j].matched = true;
+                            gemGrid[i + 1, j].matched = true;
+                            gemGrid[i + 2, j].matched = true;
                         }
-                        gemGrid[i, j].matched = true;
-                        gemGrid[i + 1, j].matched = true;
-                        gemGrid[i + 2, j].matched = true;
                     }
+
                 }
             }
         }
@@ -210,18 +239,64 @@ namespace Match_3_Duel
         }
         protected void GemFall()
         {
-            for (int h = 0; h < 4; h++)
+            for (int i = 0; i < 7; i++)
             {
-                for (int i = 0; i < 7; i++)
+                //no need to check bottom row
+                for (int j = 3; j >= 0; j--)
                 {
-                    //no need to check bottom row
-                    for (int j = 3; j >= 0; j--)
+                    if (gemGrid[i, j] != null)
                     {
-                        //if the block below is empty then move down by 1
                         if (gemGrid[i, j + 1] == null)
                         {
+                            gemGrid[i, j].gemFalling = true;
+                        }
+                        else
+                        {
+                            gemGrid[i,j].gemFalling = false;
+                        }
+                    }
+                }
+            }
+        }
+        protected bool GemFalling()
+        {
+            for (int i = 0; i < 7; i++)
+            {
+                //no need to check bottom row
+                for (int j = 0; j < 5; j++)
+                {
+                    if (gemGrid[i, j] != null)
+                    {
+                        if (gemGrid[i, j].gemFalling == true)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        protected void MoveGems(GameTime gameTime)
+        {
+            float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            for (int i = 0; i < 7; i++)
+            {
+                for (int j = 3; j >= 0; j--)
+                {
+                    if (gemGrid[i, j] != null && gemGrid[i, j].gemFalling == true)
+                    {
+                        if (gemGrid[i, j].gemY > (j + 1) * tileHeight + gridY)
+                        {
+                            gemGrid[i, j].gemY = (j + 1) *  tileHeight + gridY;
+                            gemGrid[i, j].gemFalling = false;
                             gemGrid[i, j + 1] = gemGrid[i, j];
                             gemGrid[i, j] = null;
+                        }
+                        else
+                        {
+                            int gemMoveY = (int)(speedY * dt);
+                            gemGrid[i, j].gemY += gemMoveY;
+                            gemGrid[i, j].gemPos = new Vector2(gemGrid[i, j].gemX, gemGrid[i, j].gemY);
                         }
                     }
                 }
@@ -236,10 +311,12 @@ namespace Match_3_Duel
                     if (gemGrid[i,j] != null)
                     {
                         gemGrid[i, j].matched = false;
+                        gemGrid[i, j].gemPos = new Vector2(gemGrid[i, j].gemX, gemGrid[i, j].gemY);
                     }
                 }
             }
         }
+
         protected bool EmptySpaces()
         {
             for (int i = 0; i < 7; i++)
@@ -254,7 +331,7 @@ namespace Match_3_Duel
             }
             return false;
         }
-        protected void MouseClicks(GameTime gameTime)
+        protected void MouseClicks()
         {
             //initialize selection variables
             MouseState newState = Mouse.GetState();
@@ -270,12 +347,12 @@ namespace Match_3_Duel
                     gemRow = (int)((mouseStartX - gridX) / tileWidth);
                     gemCol = (int)((mouseStartY - gridY) / tileHeight);
                     gemSelected = true;
-                    IsMouseVisible = false;
+                    //IsMouseVisible = false;
                     Mouse.SetPosition(gemGrid[gemRow,gemCol].gemX + tileWidth/2, gemGrid[gemRow,gemCol].gemY + tileHeight/2);
                 }
             }
             //calculates possible moves
-            if (newState.LeftButton == ButtonState.Pressed && gemSelected == true)
+            if (newState.LeftButton == ButtonState.Pressed && gemSelected == true && gemGrid[gemRow, gemCol] != null)
             {
                 gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY);
                 mouseDeltaX = newState.X;
@@ -297,7 +374,7 @@ namespace Match_3_Duel
                 {
                     for (int j = 0; j < 5; j++)
                     {
-                        gemGrid[i, j].gemPos = new Vector2(gemGrid[i, j].gemX, gemGrid[i, j].gemY);
+                        if (gemGrid[i, j]!= null) gemGrid[i, j].gemPos = new Vector2(gemGrid[i, j].gemX, gemGrid[i, j].gemY);
                     }
                 }
                 //upward
@@ -305,7 +382,7 @@ namespace Match_3_Duel
                     mouseAngle > topLeftAngle &&
                     mouseAngle < topRightAngle)
                 {
-                    if (mouseDeltaY < gemGrid[gemRow, gemCol].gemY)
+                    if (mouseDeltaY < gemGrid[gemRow, gemCol].gemY && gemGrid[gemRow, gemCol - 1] != null)
                     {
                         gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY - tileHeight);
                         gemGrid[gemRow, gemCol - 1].gemPos = new Vector2(gemGrid[gemRow, gemCol - 1].gemX, gemGrid[gemRow, gemCol - 1].gemY + tileHeight);
@@ -318,7 +395,7 @@ namespace Match_3_Duel
                     mouseAngle > topRightAngle &&
                     mouseAngle < bottomRightAngle)
                 {
-                    if (mouseDeltaX > gemGrid[gemRow, gemCol].gemX + tileWidth)
+                    if (mouseDeltaX > gemGrid[gemRow, gemCol].gemX + tileWidth && gemGrid[gemRow + 1, gemCol] != null)
                     {
                         gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX + tileWidth, gemGrid[gemRow, gemCol].gemY);
                         gemGrid[gemRow + 1, gemCol].gemPos = new Vector2(gemGrid[gemRow + 1, gemCol].gemX - tileWidth, gemGrid[gemRow + 1, gemCol].gemY);
@@ -330,7 +407,7 @@ namespace Match_3_Duel
                     mouseAngle > bottomRightAngle &&
                     mouseAngle < bottomLeftAngle)
                 {
-                    if (mouseDeltaY > gemGrid[gemRow, gemCol].gemY + tileHeight)
+                    if (mouseDeltaY > gemGrid[gemRow, gemCol].gemY + tileHeight && gemGrid[gemRow, gemCol + 1] != null)
                     {
                         gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX, gemGrid[gemRow, gemCol].gemY + tileHeight);
                         gemGrid[gemRow, gemCol + 1].gemPos = new Vector2(gemGrid[gemRow, gemCol + 1].gemX, gemGrid[gemRow, gemCol + 1].gemY - tileHeight);
@@ -343,7 +420,7 @@ namespace Match_3_Duel
                     if (mouseAngle > bottomLeftAngle ||
                         mouseAngle < topLeftAngle)
                     {
-                        if (mouseDeltaX < gemGrid[gemRow, gemCol].gemX)
+                        if (mouseDeltaX < gemGrid[gemRow, gemCol].gemX && gemGrid[gemRow - 1, gemCol] != null)
                         {
                             gemGrid[gemRow, gemCol].gemPos = new Vector2(gemGrid[gemRow, gemCol].gemX - tileWidth, gemGrid[gemRow, gemCol].gemY);
                             gemGrid[gemRow - 1, gemCol].gemPos = new Vector2(gemGrid[gemRow - 1, gemCol].gemX + tileWidth, gemGrid[gemRow - 1, gemCol].gemY);
@@ -353,7 +430,7 @@ namespace Match_3_Duel
                 }
             }
             //change values in gemGrid
-            if (newState.LeftButton == ButtonState.Released && gemSelected == true)
+            if (newState.LeftButton == ButtonState.Released && gemSelected == true && gemGrid[gemRow, gemCol] != null)
             {
                 int gemtype1 = gemGrid[gemRow, gemCol].gemtype;
                 int gemtype2;
@@ -383,14 +460,14 @@ namespace Match_3_Duel
                         break;
                 }
                 gemSelected = false;
-                IsMouseVisible = true;
+                //IsMouseVisible = true;
                 moveGem = "";
                 //update new positions
                 for (int i = 0; i < 7; i++)
                 {
                     for (int j = 0; j < 5; j++)
                     {
-                        gemGrid[i, j].gemPos = new Vector2(gemGrid[i, j].gemX, gemGrid[i, j].gemY);
+                        if (gemGrid[i,j] != null) gemGrid[i, j].gemPos = new Vector2(gemGrid[i, j].gemX, gemGrid[i, j].gemY);
                     }
                 }
                 //Mouse.SetPosition(mouseStartX, mouseStartY);
@@ -421,17 +498,27 @@ namespace Match_3_Duel
             {
                 for (int j = 0;j < 5; j++)
                 {
-                    int type = gemGrid[i, j].gemtype;
                     //_spriteBatch.Draw(gemTiles[type - 1], new Vector2(gemGrid[i, j].gemX, gemGrid[i,j].gemY), Color.White);
-                    _spriteBatch.Draw(gemTiles[type - 1], gemGrid[i,j].gemPos, Color.White);
+                    if (gemGrid[i, j] != null)
+                    {
+                        int type = gemGrid[i, j].gemtype;
+                        _spriteBatch.Draw(gemTiles[type - 1], gemGrid[i, j].gemPos, Color.White);
+
+
+
+                        string coords = gemGrid[i, j].gemX.ToString() + "," + gemGrid[i, j].gemY.ToString() + "                 [" + i.ToString() + "][" + j.ToString() + "]";
+                        _spriteBatch.DrawString(arialFont, coords, gemGrid[i, j].gemPos, Color.White);
+                        string matchState = gemGrid[i, j].matched.ToString();
+                        _spriteBatch.DrawString(arialFont, matchState, new Vector2(gemGrid[i, j].gemX, gemGrid[i, j].gemY + 20), Color.White);
+
+                    }
+
                     HighlightGem();
 
 
 
-                    string coords = gemGrid[i, j].gemX.ToString() + "," + gemGrid[i, j].gemY.ToString() + "                 [" + i.ToString() + "][" + j.ToString() + "]";
-                    _spriteBatch.DrawString(arialFont, coords, gemGrid[i, j].gemPos, Color.White);
-
-
+                    string turnextra = extraMove.ToString();
+                    _spriteBatch.DrawString(arialFont, turnextra, new Vector2(0, 0), Color.White);
                     //MouseState mouseState = Mouse.GetState();
                     //string mouseCoords = "current mous coord: " + mouseState.X.ToString() + "," + mouseState.Y.ToString();
                     //_spriteBatch.DrawString(arialFont, mouseCoords, new Vector2(0,0), Color.White);
