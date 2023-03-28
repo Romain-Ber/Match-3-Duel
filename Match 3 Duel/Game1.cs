@@ -145,8 +145,8 @@ namespace Match_3_Duel
             {
                 FillGrid();
                 MatchGems();
-                RemoveGems();
                 ShiftGems();
+                RemoveGems();
                 ResetGemState();
             }
             MouseClicks();
@@ -241,21 +241,19 @@ namespace Match_3_Duel
         {
             for (int i = 0; i < 7; i++)
             {
-                if (gemsRemoved[i] != 5)
+                int gapStart = -1;
+                for (int j = 4; j >= 0; j--)
                 {
-                    int gapStart = -1;
-                    for (int j = 4; j >= 0; j--)
+                    if (gemGrid[i, j].matched == true && gapStart == -1)
                     {
-                        if (gemGrid[i, j] == null && gapStart != -1)
-                        {
-                            gapStart = j;
-                        }
-                        else if (gemGrid[i, j] != null && gapStart != -1)
-                        {
-                            gemGrid[i, gapStart] = gemGrid[i, j];
-                            gemGrid[i, j] = null;
-                            gapStart--;
-                        }
+                        gapStart = j;
+                    }
+                    else if (gemGrid[i, j].matched == false && gapStart != -1)
+                    {
+                        gemGrid[i, gapStart].gemtype = gemGrid[i, j].gemtype;
+                        gemGrid[i, gapStart].matched = false;
+                        gemGrid[i, j].matched = true;
+                        gapStart--;
                     }
                 }
             }
@@ -267,7 +265,7 @@ namespace Match_3_Duel
             {
                 for (int j = 3; j >= 0; j--)
                 {
-                    if (gemGrid[i, j].gemFall > 0 && gemGrid[i, j] != null)
+                    if (gemGrid[i, j].matched == true)
                     {
                         int gemMoveY = (int)(speedY * dt);
                         gemGrid[i, j].gemY += gemMoveY;
@@ -447,13 +445,10 @@ namespace Match_3_Duel
                 //IsMouseVisible = true;
                 moveGem = "";
                 //update new positions
-                //for (int i = 0; i < 7; i++)
-                //{
-                //    for (int j = 0; j < 5; j++)
-                //    {
-                //        if (gemGrid[i,j] != null) gemGrid[i, j].gemPos = new Vector2(gemGrid[i, j].gemX, gemGrid[i, j].gemY);
-                //    }
-                //}
+                MatchGems();
+                ShiftGems();
+                RemoveGems();
+                ResetGemState();
                 //Mouse.SetPosition(mouseStartX, mouseStartY);
                 //Mouse.SetPosition(gemGrid[gemRow, gemCol].gemX + tileWidth / 2, gemGrid[gemRow, gemCol].gemY + tileHeight / 2);
             }
