@@ -141,10 +141,27 @@ namespace Match_3_Duel
             //    RemoveGems();
             //    ResetGemState();
             //}
+            //if (GemsAreMoving() == false)
+            //{
+            //    if (EmptySpaces())
+            //    {
+            //        FillGrid();
+            //        MatchGems();
+            //        RemoveGems();
+            //        ShiftGems();
+            //        ResetGemState();
+            //    }
+            //    MouseClicks();
+            //}
+            //else
+            //{
+            //    MoveGems(gameTime);
+            //}
             if (EmptySpaces())
             {
                 FillGrid();
                 MatchGems();
+                //RemoveGems();
                 ShiftGems();
                 RemoveGems();
                 ResetGemState();
@@ -258,6 +275,21 @@ namespace Match_3_Duel
                 }
             }
         }
+        protected bool GemsAreMoving()
+        {
+            for (int i = 0; i< 7; i++)
+            {
+                for (int j = 4; j>= 0; j--)
+                {
+                    if (gemGrid[i, j] != null &&
+                        gemGrid[i, j].gemFall > 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
         protected void MoveGems(GameTime gameTime)
         {
             float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -265,19 +297,19 @@ namespace Match_3_Duel
             {
                 for (int j = 3; j >= 0; j--)
                 {
-                    if (gemGrid[i, j].matched == true)
+                    if (gemGrid[i, j] != null &&
+                        gemGrid[i, j].gemFall > 0)
                     {
                         int gemMoveY = (int)(speedY * dt);
                         gemGrid[i, j].gemY += gemMoveY;
                         gemGrid[i, j].gemPos = new Vector2(gemGrid[i, j].gemX, gemGrid[i, j].gemY);
                         if (gemGrid[i, j].gemY > (j + gemGrid[i, j].gemFall) * tileHeight + gridY)
                         {
-                            int gemFall = gemGrid[i, j].gemFall;
-                            gemGrid[i, j + gemFall] = gemGrid[i, j];
-                            for (int k = gemFall; k > 0; k--)
-                            {
-                                
-                            }
+                            gemGrid[i, j + gemGrid[i, j].gemFall] = gemGrid[i, j];
+                            gemGrid[i, j + gemGrid[i, j].gemFall].gemFall = 0;
+                            gemGrid[i, j + gemGrid[i, j].gemFall].gemY = (j + gemGrid[i, j].gemFall) * tileHeight + gridY;
+                            gemGrid[i, j + gemGrid[i, j].gemFall].gemPos = new Vector2(gemGrid[i, j + gemGrid[i, j].gemFall].gemX, gemGrid[i, j + gemGrid[i, j].gemFall].gemY);
+                            gemGrid[i, j] = null;
                         }
                     }
                 }
@@ -334,6 +366,7 @@ namespace Match_3_Duel
                     Mouse.SetPosition(gemGrid[gemRow,gemCol].gemX + tileWidth/2, gemGrid[gemRow,gemCol].gemY + tileHeight/2);
                 }
             }
+
             //calculates possible moves
             if (newState.LeftButton == ButtonState.Pressed && gemSelected == true && gemGrid[gemRow, gemCol] != null)
             {
